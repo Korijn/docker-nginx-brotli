@@ -1,5 +1,6 @@
 dist: bionic
-sudo: false
+os: linux
+language: minimal
 
 services:
   - docker
