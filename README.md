@@ -1,11 +1,11 @@
 # Docker-nginx-brotli
 
-Single-line config to serve [brotli](https://github.com/google/brotli)-compressed content
+Mainline nginx serving [brotli](https://github.com/google/brotli)-compressed content
 
 ## Example
 
 ```bash
-docker run -p 80:80 lunaticcat/nginx-brotli:1.17.9-alpine-perl
+docker run -p 80:80 lunaticcat/nginx-brotli
 ```
 
 ```bash
@@ -29,26 +29,26 @@ Content-Encoding: br
 
 ## Usage
 
-```nginx
-# nginx http section
-brotli on;
-brotli_static on;
-```
+An example `Dockerfile` with cpu-offloading by AOT precompilation:
 
-Offload CPU by preparing your static files like this
+```dockerfile
+FROM alpine AS builder
 
-```bash
-apt install brotli
+RUN apk update && apk add brotli findutils
+RUN mkdir /app && cd /app
 
-# simply html
-brotli /usr/share/nginx/html/*html
+# COPY your static content to `/app`
+find /app -regextype posix-egrep -regex '.*(\.js|\.css|\.svg|\.ttf|\.webp|\.jpg|\.png|\.ico|\.html)' -exec brotli {} \;
 
-# or deep nested various resources
-find www-root-dir -regextype posix-egrep -regex '.*(\.js|\.css|\.svg|\.ttf|\.webp|\.jpg|\.png|\.ico|\.html)' -exec brotli --input {} --output {}.br \;
+FROM lunaticcat/nginx-brotli
+
+# COPY your nginx vhost to `/app`
+COPY --from=builder --chown=nginx:nginx /app /usr/share/nginx/html
 ```
 
 ## Thanks
 
 Updated version of [fholzer/docker-nginx-brotli](https://github.com/fholzer/docker-nginx-brotli):
-latest alpine + mainline nginx + [nginx brotli
+latest alpine + mainline nginx + latest [nginx brotli
 module](https://github.com/google/ngx_brotli) atm.
+
