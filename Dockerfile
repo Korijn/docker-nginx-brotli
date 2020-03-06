@@ -56,8 +56,15 @@ COPY --from=builder  /usr/local/nginx/modules/ngx_http_brotli_static_module.so /
 COPY --from=html-builder --chown=nginx:nginx /html /usr/share/nginx/html
 COPY nginx /etc/nginx
 
+# https://microbadger.com/images/lunaticcat/nginx-brotli
+COPY Dockerfile /Dockerfile
+LABEL org.label-schema.docker.dockerfile="/Dockerfile" \
+  org.label-schema.vcs-type="Git" \
+  org.label-schema.vcs-url="https://github.com/lunatic-cat/docker-nginx-brotli"
+
 EXPOSE 80
 
 STOPSIGNAL SIGTERM
 
 CMD ["nginx", "-g", "daemon off;"]
+
