@@ -1,158 +1,60 @@
-FROM alpine:3.11 as html-builder
+FROM alpine:3.10 as html-builder
 
 RUN apk update && apk add brotli
+
 RUN mkdir /html
 COPY html/index.html /html
+
 RUN gzip -9 -k /html/*html
 RUN brotli -Z /html/*html
 
-FROM alpine:3.11
 
-ENV NGINX_VERSION 1.17.9
-ENV NGX_BROTLI_COMMIT 0fdca2565dbedb88101ca19b1fb1511272f0821f
+FROM nginx:1.17.9-alpine AS builder
 
-RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
-	&& CONFIG="\
-		--prefix=/etc/nginx \
-		--sbin-path=/usr/sbin/nginx \
-		--modules-path=/usr/lib/nginx/modules \
-		--conf-path=/etc/nginx/nginx.conf \
-		--error-log-path=/var/log/nginx/error.log \
-		--http-log-path=/var/log/nginx/access.log \
-		--pid-path=/var/run/nginx.pid \
-		--lock-path=/var/run/nginx.lock \
-		--http-client-body-temp-path=/var/cache/nginx/client_temp \
-		--http-proxy-temp-path=/var/cache/nginx/proxy_temp \
-		--http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
-		--http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
-		--http-scgi-temp-path=/var/cache/nginx/scgi_temp \
-		--user=nginx \
-		--group=nginx \
-		--with-http_ssl_module \
-		--with-http_realip_module \
-		--with-http_addition_module \
-		--with-http_sub_module \
-		--with-http_dav_module \
-		--with-http_flv_module \
-		--with-http_mp4_module \
-		--with-http_gunzip_module \
-		--with-http_gzip_static_module \
-		--with-http_random_index_module \
-		--with-http_secure_link_module \
-		--with-http_stub_status_module \
-		--with-http_auth_request_module \
-		--with-http_xslt_module=dynamic \
-		--with-http_image_filter_module=dynamic \
-		--with-http_geoip_module=dynamic \
-		--with-http_perl_module=dynamic \
-		--with-threads \
-		--with-stream \
-		--with-stream_ssl_module \
-		--with-stream_ssl_preread_module \
-		--with-stream_realip_module \
-		--with-stream_geoip_module=dynamic \
-		--with-http_slice_module \
-		--with-mail \
-		--with-mail_ssl_module \
-		--with-compat \
-		--with-file-aio \
-		--with-http_v2_module \
-		--add-module=/usr/src/ngx_brotli \
-	" \
-	&& addgroup -S nginx \
-	&& adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
-	&& apk add --no-cache --virtual .build-deps \
-		gcc \
-		libc-dev \
-		make \
-		openssl-dev \
-		pcre-dev \
-		zlib-dev \
-		linux-headers \
-		curl \
-		gnupg1 \
-		libxslt-dev \
-		gd-dev \
-		geoip-dev \
-		perl-dev \
-	&& apk add --no-cache --virtual .brotli-build-deps \
-		autoconf \
-		libtool \
-		automake \
-		git \
-		g++ \
-		cmake \
-	&& mkdir -p /usr/src \
-	&& cd /usr/src \
-	&& git clone --recursive https://github.com/google/ngx_brotli.git \
-	&& cd ngx_brotli \
-	&& git checkout -b $NGX_BROTLI_COMMIT $NGX_BROTLI_COMMIT \
-	&& cd .. \
-	&& curl -fSL https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
-	&& curl -fSL https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc  -o nginx.tar.gz.asc \
-        && sha512sum nginx.tar.gz nginx.tar.gz.asc \
-	&& export GNUPGHOME="$(mktemp -d)" \
-	&& gpg --keyserver ipv4.pool.sks-keyservers.net --recv-keys "$GPG_KEYS" \
-	&& gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz \
-	&& rm -rf "$GNUPGHOME" nginx.tar.gz.asc \
-	&& mkdir -p /usr/src \
-	&& tar -zxC /usr/src -f nginx.tar.gz \
-	&& rm nginx.tar.gz \
-	&& cd /usr/src/nginx-$NGINX_VERSION \
-	&& ./configure $CONFIG --with-debug \
-	&& make -j$(getconf _NPROCESSORS_ONLN) \
-	&& mv objs/nginx objs/nginx-debug \
-	&& mv objs/ngx_http_xslt_filter_module.so objs/ngx_http_xslt_filter_module-debug.so \
-	&& mv objs/ngx_http_image_filter_module.so objs/ngx_http_image_filter_module-debug.so \
-	&& mv objs/ngx_http_geoip_module.so objs/ngx_http_geoip_module-debug.so \
-	&& mv objs/ngx_http_perl_module.so objs/ngx_http_perl_module-debug.so \
-	&& mv objs/ngx_stream_geoip_module.so objs/ngx_stream_geoip_module-debug.so \
-	&& ./configure $CONFIG \
-	&& make -j$(getconf _NPROCESSORS_ONLN) \
-	&& make install \
-	&& rm -rf /etc/nginx/html/ \
-	&& mkdir /etc/nginx/conf.d/ \
-	&& mkdir -p /usr/share/nginx/html/ \
-	&& install -m644 html/index.html /usr/share/nginx/html/ \
-	&& install -m644 html/50x.html /usr/share/nginx/html/ \
-	&& install -m755 objs/nginx-debug /usr/sbin/nginx-debug \
-	&& install -m755 objs/ngx_http_xslt_filter_module-debug.so /usr/lib/nginx/modules/ngx_http_xslt_filter_module-debug.so \
-	&& install -m755 objs/ngx_http_image_filter_module-debug.so /usr/lib/nginx/modules/ngx_http_image_filter_module-debug.so \
-	&& install -m755 objs/ngx_http_geoip_module-debug.so /usr/lib/nginx/modules/ngx_http_geoip_module-debug.so \
-	&& install -m755 objs/ngx_http_perl_module-debug.so /usr/lib/nginx/modules/ngx_http_perl_module-debug.so \
-	&& install -m755 objs/ngx_stream_geoip_module-debug.so /usr/lib/nginx/modules/ngx_stream_geoip_module-debug.so \
-	&& ln -s ../../usr/lib/nginx/modules /etc/nginx/modules \
-	&& strip /usr/sbin/nginx* \
-	&& strip /usr/lib/nginx/modules/*.so \
-	&& rm -rf /usr/src/nginx-$NGINX_VERSION \
-	&& rm -rf /usr/src/ngx_brotli \
-	\
-	# Bring in gettext so we can get `envsubst`, then throw
-	# the rest away. To do this, we need to install `gettext`
-	# then move `envsubst` out of the way so `gettext` can
-	# be deleted completely, then move `envsubst` back.
-	&& apk add --no-cache --virtual .gettext gettext \
-	&& mv /usr/bin/envsubst /tmp/ \
-	\
-	&& runDeps="$( \
-		scanelf --needed --nobanner /usr/sbin/nginx /usr/lib/nginx/modules/*.so /tmp/envsubst \
-			| awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
-			| sort -u \
-			| xargs -r apk info --installed \
-			| sort -u \
-	)" \
-	&& apk add --no-cache --virtual .nginx-rundeps tzdata $runDeps \
-	&& apk del .build-deps \
-	&& apk del .brotli-build-deps \
-	&& apk del .gettext \
-	&& mv /tmp/envsubst /usr/local/bin/ \
-	\
-	# forward request and error logs to docker log collector
-	&& ln -sf /dev/stdout /var/log/nginx/access.log \
-	&& ln -sf /dev/stderr /var/log/nginx/error.log
+ENV NGX_MODULE_COMMIT 0fdca2565dbedb88101ca19b1fb1511272f0821f
+ENV NGX_MODULE_PATH ngx_brotli
 
-COPY nginx /etc/nginx
+RUN wget "http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" -O nginx.tar.gz && \
+  wget "https://github.com/google/ngx_brotli/archive/${NGX_MODULE_COMMIT}.tar.gz" -O ${NGX_MODULE_PATH}.tar.gz
+
+# For latest build deps, see https://github.com/nginxinc/docker-nginx/blob/master/mainline/alpine/Dockerfile
+RUN apk add --no-cache --virtual .build-deps \
+  gcc \
+  libc-dev \
+  make \
+  openssl-dev \
+  pcre-dev \
+  zlib-dev \
+  linux-headers \
+  libxslt-dev \
+  gd-dev \
+  geoip-dev \
+  perl-dev \
+  libedit-dev \
+  mercurial \
+  bash \
+  alpine-sdk \
+  findutils \
+  brotli-dev
+
+# Reuse same cli arguments as the nginx:alpine image used to build
+RUN CONFARGS=$(nginx -V 2>&1 | sed -n -e 's/^.*arguments: //p') \
+  tar -zxf nginx.tar.gz && \
+  tar -xzf "${NGX_MODULE_PATH}.tar.gz" && \
+  cd nginx-$NGINX_VERSION && \
+  ./configure --with-compat $CONFARGS --add-dynamic-module="$(pwd)/../${NGX_MODULE_PATH}-${NGX_MODULE_COMMIT}" && \
+  make && make install
+
+# save /usr/lib/*so deps
+RUN mkdir /so-deps && cp -L $(ldd /usr/local/nginx/modules/ngx_http_brotli_filter_module.so 2>/dev/null | grep '/usr/lib/' | awk '{ print $3 }' | tr '\n' ' ') /so-deps
+
+FROM nginx:1.17.9-alpine
+
+COPY --from=builder  /so-deps /usr/lib
+COPY --from=builder  /usr/local/nginx/modules/ngx_http_brotli_filter_module.so /usr/local/nginx/modules/ngx_http_brotli_filter_module.so
+COPY --from=builder  /usr/local/nginx/modules/ngx_http_brotli_static_module.so /usr/local/nginx/modules/ngx_http_brotli_static_module.so
 COPY --from=html-builder --chown=nginx:nginx /html /usr/share/nginx/html
+COPY nginx /etc/nginx
 
 EXPOSE 80
 

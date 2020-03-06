@@ -42,13 +42,26 @@ find /app -regextype posix-egrep -regex '.*(\.js|\.css|\.svg|\.ttf|\.webp|\.jpg|
 
 FROM lunaticcat/nginx-brotli
 
-# COPY your nginx vhost to `/app`
+COPY your-nginx-vhost.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder --chown=nginx:nginx /app /usr/share/nginx/html
+```
+
+if you override `nginx.conf` with your config you still need this:
+
+```nginx
+load_module /usr/local/nginx/modules/ngx_http_brotli_filter_module.so;
+load_module /usr/local/nginx/modules/ngx_http_brotli_static_module.so;
+
+http {
+    brotli on;
+    brotli_static on;
+}
 ```
 
 ## Thanks
 
-Updated version of [fholzer/docker-nginx-brotli](https://github.com/fholzer/docker-nginx-brotli):
-latest alpine + mainline nginx + latest [nginx brotli
-module](https://github.com/google/ngx_brotli) atm.
+Inspired by [fholzer/docker-nginx-brotli](https://github.com/fholzer/docker-nginx-brotli):
+but latest alpine + mainline nginx + latest [nginx brotli
+module](https://github.com/google/ngx_brotli)
+and module compiled using this [receipe](https://gist.github.com/hermanbanken/96f0ff298c162a522ddbba44cad31081)
 
