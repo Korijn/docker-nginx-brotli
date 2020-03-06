@@ -60,8 +60,8 @@ http {
 
 ## Thanks
 
-Inspired by [fholzer/docker-nginx-brotli](https://github.com/fholzer/docker-nginx-brotli):
-but latest alpine + mainline nginx + latest [nginx brotli
-module](https://github.com/google/ngx_brotli)
-and module compiled using this [receipe](https://gist.github.com/hermanbanken/96f0ff298c162a522ddbba44cad31081)
+- inspired by [fholzer/docker-nginx-brotli](https://github.com/fholzer/docker-nginx-brotli):
+- using latest mainline nginx and [nginx brotli module](https://github.com/google/ngx_brotli)
+- module compiled using this [receipe](https://gist.github.com/hermanbanken/96f0ff298c162a522ddbba44cad31081)
+- using exactly same build flags as nginx-alpine, so it should be easy to update
 
