@@ -1,5 +1,7 @@
 # Docker-nginx-brotli
 
+[![TravisCI Build Status](https://travis-ci.org/lunatic-cat/docker-nginx-brotli?branch=master)](https://travis-ci.org/lunatic-cat/docker-nginx-brotli)
+
 Mainline nginx serving [brotli](https://github.com/google/brotli)-compressed content
 
 ## Example
