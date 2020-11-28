@@ -1,17 +1,6 @@
-FROM alpine:3.10 as html-builder
+FROM nginx:alpine AS ngx_brotli_build
 
-RUN apk update && apk add brotli
-
-RUN mkdir /html
-COPY html/index.html /html
-
-RUN gzip -9 -k /html/*html
-RUN brotli -Z /html/*html
-
-
-FROM nginx:1.17.9-alpine AS builder
-
-ENV NGX_MODULE_COMMIT 0fdca2565dbedb88101ca19b1fb1511272f0821f
+ENV NGX_MODULE_COMMIT 9aec15e2aa6feea2113119ba06460af70ab3ea62
 ENV NGX_MODULE_PATH ngx_brotli
 
 RUN wget "http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" -O nginx.tar.gz && \
@@ -48,23 +37,13 @@ RUN CONFARGS=$(nginx -V 2>&1 | sed -n -e 's/^.*arguments: //p') \
 # save /usr/lib/*so deps
 RUN mkdir /so-deps && cp -L $(ldd /usr/local/nginx/modules/ngx_http_brotli_filter_module.so 2>/dev/null | grep '/usr/lib/' | awk '{ print $3 }' | tr '\n' ' ') /so-deps
 
-FROM nginx:1.17.9-alpine
+# prepend load_module commands to main nginx.conf
+RUN echo "load_module /usr/local/nginx/modules/ngx_http_brotli_filter_module.so;" | cat - /etc/nginx/nginx.conf > /tmp/out && mv /tmp/out /etc/nginx/nginx.conf
+RUN echo "load_module /usr/local/nginx/modules/ngx_http_brotli_static_module.so;" | cat - /etc/nginx/nginx.conf > /tmp/out && mv /tmp/out /etc/nginx/nginx.conf
 
-COPY --from=builder  /so-deps /usr/lib
-COPY --from=builder  /usr/local/nginx/modules/ngx_http_brotli_filter_module.so /usr/local/nginx/modules/ngx_http_brotli_filter_module.so
-COPY --from=builder  /usr/local/nginx/modules/ngx_http_brotli_static_module.so /usr/local/nginx/modules/ngx_http_brotli_static_module.so
-COPY --from=html-builder --chown=nginx:nginx /html /usr/share/nginx/html
-COPY nginx /etc/nginx
+FROM nginx:alpine
 
-# https://microbadger.com/images/lunaticcat/nginx-brotli
-COPY Dockerfile /Dockerfile
-LABEL org.label-schema.docker.dockerfile="/Dockerfile" \
-  org.label-schema.vcs-type="Git" \
-  org.label-schema.vcs-url="https://github.com/lunatic-cat/docker-nginx-brotli"
-
-EXPOSE 80
-
-STOPSIGNAL SIGTERM
-
-CMD ["nginx", "-g", "daemon off;"]
-
+COPY --from=ngx_brotli_build /so-deps /usr/lib
+COPY --from=ngx_brotli_build /etc/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --from=ngx_brotli_build /usr/local/nginx/modules/ngx_http_brotli_filter_module.so /usr/local/nginx/modules/ngx_http_brotli_filter_module.so
+COPY --from=ngx_brotli_build /usr/local/nginx/modules/ngx_http_brotli_static_module.so /usr/local/nginx/modules/ngx_http_brotli_static_module.so

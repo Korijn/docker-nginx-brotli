@@ -1,70 +1,29 @@
 # Docker-nginx-brotli
 
-[![TravisCI Build Status](https://travis-ci.org/lunatic-cat/docker-nginx-brotli.svg?branch=master)](https://travis-ci.org/lunatic-cat/docker-nginx-brotli)
-[![](https://images.microbadger.com/badges/image/lunaticcat/nginx-brotli.svg)](https://microbadger.com/images/lunaticcat/nginx-brotli)
+I forked [lunatic-cat/docker-nginx-brotli](https://github.com/lunatic-cat/docker-nginx-brotli) because
+although it brilliantly (read: with minimal maintenance requirements) extends the official `nginx:alpine`
+image with the [google/ngx_brotli](https://github.com/google/ngx_brotli) modules, it also replaces
+the default `nginx.conf` file, changing the official default configuration, and it also omits the
+entrypoint scripts, which means you cannot benefit from environment subsitutation in configuration
+template files, which is a very useful feature when you are working on
+[twelve-factor apps](https://12factor.net/).
 
-Mainline nginx serving [brotli](https://github.com/google/brotli)-compressed content
+So, to summarize, the Dockerfile in this repository does not impact the official NGINX image in any way
+other than adding the ngx_brotli modules and prepending two lines to the default configuration file to
+load the modules. The official image's configuration and entrypoint are preserved.
 
-## Example
+# Where's the Docker image?
 
-```bash
-docker run -p 80:80 lunaticcat/nginx-brotli
-```
+I did not build and publish this image, because I cannot promise to keep it up to date and regularly push
+new builds. You are better off copying the content of this Dockerfile as a starting point for your project.
 
-```bash
-curl -sI -X GET localhost | grep -E 'Content-Length|Content-Encoding'
-Content-Length: 718
-```
+That way, everytime you build, you base your image off the latest and greatest `nginx:alpine` images, rather
+than an outdated prebuilt image by my hand.
 
-```bash
-curl -sI -X GET localhost -H 'accept-encoding: gzip' | grep -E 'Content-Length|Content-Encoding'
-Content-Length: 419
-Content-Encoding: gzip
-```
+# Why is this not supported in the official image, anyway?
 
-But [more than 90%](https://caniuse.com/#feat=brotli) browsers send this:
-
-```bash
-curl -sI -X GET localhost -H 'accept-encoding: gzip, deflate, br' | grep -E 'Content-Length|Content-Encoding'
-Content-Length: 270
-Content-Encoding: br
-```
-
-## Usage
-
-An example `Dockerfile` with cpu-offloading by AOT precompilation:
-
-```dockerfile
-FROM alpine AS builder
-
-RUN apk update && apk add brotli findutils
-RUN mkdir /app && cd /app
-
-# COPY your static content to `/app`
-find /app -regextype posix-egrep -regex '.*(\.js|\.css|\.svg|\.ttf|\.webp|\.jpg|\.png|\.ico|\.html)' -exec brotli {} \;
-
-FROM lunaticcat/nginx-brotli
-
-COPY your-nginx-vhost.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder --chown=nginx:nginx /app /usr/share/nginx/html
-```
-
-if you override `nginx.conf` with your config you still need this:
-
-```nginx
-load_module /usr/local/nginx/modules/ngx_http_brotli_filter_module.so;
-load_module /usr/local/nginx/modules/ngx_http_brotli_static_module.so;
-
-http {
-    brotli on;
-    brotli_static on;
-}
-```
+See https://github.com/nginxinc/docker-nginx/issues/371
 
 ## Thanks
 
-- inspired by [fholzer/docker-nginx-brotli](https://github.com/fholzer/docker-nginx-brotli):
-- using latest mainline nginx and [nginx brotli module](https://github.com/google/ngx_brotli)
-- module compiled using this [receipe](https://gist.github.com/hermanbanken/96f0ff298c162a522ddbba44cad31081)
-- using exactly same build flags as nginx-alpine, so it should be easy to update
-
+- based on [lunatic-cat/docker-nginx-brotli](https://github.com/lunatic-cat/docker-nginx-brotli)
