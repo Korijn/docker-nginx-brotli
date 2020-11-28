@@ -12,7 +12,7 @@ So, to summarize, the Dockerfile in this repository does not impact the official
 other than adding the ngx_brotli modules and prepending two lines to the default configuration file to
 load the modules. The official image's configuration and entrypoint are preserved.
 
-# Where's the Docker image?
+## Where's the Docker image?
 
 I did not build and publish this image, because I cannot promise to keep it up to date and regularly push
 new builds. You are better off copying the content of this Dockerfile as a starting point for your project.
@@ -20,7 +20,7 @@ new builds. You are better off copying the content of this Dockerfile as a start
 That way, everytime you build, you base your image off the latest and greatest `nginx:alpine` images, rather
 than an outdated prebuilt image by my hand.
 
-# Why is this not supported in the official image, anyway?
+## Why is this not supported in the official image, anyway?
 
 See https://github.com/nginxinc/docker-nginx/issues/371
 
