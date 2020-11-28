@@ -4,7 +4,7 @@ I forked [lunatic-cat/docker-nginx-brotli](https://github.com/lunatic-cat/docker
 although it brilliantly (read: with minimal maintenance requirements) extends the official `nginx:alpine`
 image with the [google/ngx_brotli](https://github.com/google/ngx_brotli) modules, it also replaces
 the default `nginx.conf` file, changing the official default configuration, and it also omits the
-entrypoint scripts, which means you cannot benefit from environment subsitutation in configuration
+entrypoint scripts, which means you cannot benefit from environment substitution in configuration
 template files, which is a very useful feature when you are working on
 [twelve-factor apps](https://12factor.net/).
 
