@@ -1,3 +1,12 @@
+# Archival notice
+
+This repository has been archived. The problem has been solved upstream, please see
+[here](https://github.com/nginxinc/docker-nginx/tree/master/modules) for the official solution.
+
+Alternatively you can go [here](https://github.com/Korijn/docker-nginx-brotli-module) if
+you are looking for prebuilt images of nginx + brotli. I use github actions to automatically
+build new images every night.
+
 # Docker-nginx-brotli
 
 I forked [lunatic-cat/docker-nginx-brotli](https://github.com/lunatic-cat/docker-nginx-brotli) because
